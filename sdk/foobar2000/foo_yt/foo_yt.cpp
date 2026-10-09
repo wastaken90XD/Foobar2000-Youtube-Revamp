@@ -1,7 +1,6 @@
 #include "stdafx.h"
 // foo_yt.cpp - youtube.com / youtu.be -> playable stream URL.
 // Order: Invidious redirect (no parsing), then yt-dlp -g. NewPipe skipped (JVM).
-#include <foobar2000/SDK/foobar2000.h>
 #include <stdio.h>
 #include <string>
 

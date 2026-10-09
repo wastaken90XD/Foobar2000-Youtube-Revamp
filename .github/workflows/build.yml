@@ -18,8 +18,11 @@ jobs:
       - name: Set up MSBuild
         uses: microsoft/setup-msbuild@v2
 
+      # libPPUI and foobar2000_sdk_helpers include <atlbase.h>. MSBuild only adds
+      # the ATL include directory when UseOfAtl is set; a global property like this
+      # also applies to the ProjectReference builds, so no SDK project file changes.
       - name: Build foo_yt.vcxproj
-        run: msbuild sdk/foobar2000/foo_yt/foo_yt.vcxproj /p:Configuration=Release /p:Platform=${{ matrix.platform }}
+        run: msbuild sdk/foobar2000/foo_yt/foo_yt.vcxproj /p:Configuration=Release /p:Platform=${{ matrix.platform }} /p:UseOfAtl=Static
 
       - name: Package foo_yt.dll as .fb2k-component
         shell: pwsh

@@ -168,4 +168,4 @@ public:
     }
 };
 
-static link_resolver_factory_t<yt_resolver> g_yt;
+static service_factory_single_t<yt_resolver> g_yt;

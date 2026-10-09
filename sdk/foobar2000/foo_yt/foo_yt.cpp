@@ -35,11 +35,11 @@ public:
             char buf[4096] = {};
             fgets(buf, sizeof buf, f);
             _pclose(f);
-            pfc::string8 u(buf); u.skip_trailing_char("\r\n");
+            pfc::string8 u(buf); u.skip_trailing_chars("\r\n");
             if (!u.is_empty()) { out = u; return; }
         }
         throw exception_io_not_found();
     }
 };
 
-static link_resolver_factory_t<yt_resolver> g_yt;
+FB2K_SERVICE_FACTORY(yt_resolver);

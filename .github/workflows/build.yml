@@ -1,0 +1,41 @@
+name: Build foo_yt
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build foo_yt (${{ matrix.platform }})
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        platform: [x64, Win32]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build foo_yt.vcxproj
+        run: msbuild sdk/foobar2000/foo_yt/foo_yt.vcxproj /p:Configuration=Release /p:Platform=${{ matrix.platform }}
+
+      - name: Package foo_yt.dll as .fb2k-component
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $platform = '${{ matrix.platform }}'
+          $dll = @(Get-ChildItem -Path . -Recurse -File -Filter 'foo_yt.dll')
+          if ($dll.Count -ne 1) {
+            throw "Expected exactly one foo_yt.dll, found $($dll.Count): $($dll.FullName -join ', ')"
+          }
+          $zip = "foo_yt-$platform.zip"
+          Compress-Archive -Path $dll[0].FullName -DestinationPath $zip -Force
+          Rename-Item -Path $zip -NewName "foo_yt-$platform.fb2k-component"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: foo_yt-${{ matrix.platform }}
+          path: foo_yt-${{ matrix.platform }}.fb2k-component

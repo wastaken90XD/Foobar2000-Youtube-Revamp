@@ -22,7 +22,7 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
-DECLARE_COMPONENT_VERSION("YouTube resolver", "0.6",
+DECLARE_COMPONENT_VERSION("YouTube resolver", "0.6.1",
     "Invidious and/or yt-dlp. Configure under Preferences > Advanced > Tools > YouTube.\n"
     "File > Add YouTube links from clipboard: one URL, playlist URL or \"yt: search\" per line.");
 VALIDATE_COMPONENT_FILENAME("foo_yt.dll");
@@ -492,7 +492,7 @@ private:
     std::list<std::unique_ptr<conn>> m_conns;
     abort_callback_impl m_ab;
 };
-static yt_proxy g_proxy;
+static yt_proxy& proxy() { static yt_proxy p; return p; } // built on first use, not at DLL load
 
 // ---- resolver -------------------------------------------------------------
 class yt_resolver : public link_resolver {
@@ -513,8 +513,8 @@ public:
         const std::string url = stream_url(id, abort);
         if (url.empty()) throw exception_io_not_found();
 
-        if (mode == "proxy" && g_proxy.port()) {
-            out = ("http://127.0.0.1:" + std::to_string(g_proxy.port()) + "/" + id + "." + ext_for(url)).c_str();
+        if (mode == "proxy" && proxy().port()) {
+            out = ("http://127.0.0.1:" + std::to_string(proxy().port()) + "/" + id + "." + ext_for(url)).c_str();
             return;
         }
         out = (url + cfg(c_suffix)).c_str();
@@ -551,15 +551,15 @@ private:
     std::deque<std::function<void()>> m_q;
     abort_callback_impl m_ab;
 };
-static yt_worker g_worker;
+static yt_worker& worker() { static yt_worker w; return w; } // built on first use, not at DLL load
 
 class yt_initquit : public initquit {
 public:
     void on_init() override {
-        if (!g_proxy.start()) FB2K_console_formatter() << "foo_yt: proxy failed to start; proxy mode will use direct streams";
-        g_worker.start();
+        if (!proxy().start()) FB2K_console_formatter() << "foo_yt: proxy failed to start; proxy mode will use direct streams";
+        worker().start();
     }
-    void on_quit() override { g_worker.stop(); g_proxy.stop(); }
+    void on_quit() override { worker().stop(); proxy().stop(); }
 };
 static service_factory_single_t<yt_initquit> g_iq;
 
@@ -622,8 +622,8 @@ static void add_from_clipboard() {
     }
     if (lines.empty()) { FB2K_console_formatter() << "foo_yt: clipboard has no text"; return; }
 
-    g_worker.post([lines] { // expansion runs yt-dlp, so keep it off the UI thread
-        abort_callback& ab = g_worker.abort();
+    worker().post([lines] { // expansion runs yt-dlp, so keep it off the UI thread
+        abort_callback& ab = worker().abort();
         std::vector<std::string> urls;
         for (auto& l : lines) {
             if (ab.is_aborting()) return;
